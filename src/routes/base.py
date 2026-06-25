@@ -1,13 +1,14 @@
-from fastapi import APIRouter
-import os
+from fastapi import APIRouter,Depends
+from helper.config import get_settings  # ✅ مش helper
 base_router = APIRouter(
     prefix="/MiniRAG-V1",
-    tags=['api_v1']
+    tags=['api_v1','base']
 )
 
 @base_router.get("/")
-async def welcome():
-    app_name=os.getenv('APP_NAME')
-    version=os.getenv('APP_VERSION')
+async def welcome(app_settings=Depends(get_settings)):
+    app_name= app_settings.APP_NAME
+    version=app_settings.APP_VERSION
+    
     return {"app_name": app_name,
             "app_version":version}
