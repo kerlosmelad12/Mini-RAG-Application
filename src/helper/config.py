@@ -9,6 +9,9 @@ class Settings(BaseSettings):
     FILE_MAX_SIZE: int
     File_Chunk_Size: int
 
+    MONGODB_URI:str
+    MONGODB_DB_NAME:str
+
     model_config = SettingsConfigDict(env_file=".env")
 
 def get_settings():
