@@ -1,11 +1,12 @@
 from fastapi import APIRouter,UploadFile,Depends,status
 from helper.config import get_settings, Settings  
-from controllers import DataControllers,ProjectControllers
+from controllers import DataControllers,ProjectControllers,ProcessControllers
 from fastapi.responses import JSONResponse
 import aiofiles
 import os
 from models import ResponseValues
 import logging
+from .Schema.data import Processrequest
 data_router = APIRouter(
     prefix="/MiniRAG-V1/data",
     tags=['api_v1','data']
@@ -53,6 +54,39 @@ async def upload_file(project_id:str,file:UploadFile,app_Settings:Settings=Depen
             }    
             )
     
+@data_router.post("/process/{project_id}")
+async def process_data(project_id:str, process_request: Processrequest):
+    # Declar the procces reguest
+    file_id=process_request.file_id
+    chunk_size=process_request.chunk_size
+    chunk_overlap=process_request.chunk_overlap
+
+    process_controllers=ProcessControllers(project_id)
+
+
+    content=process_controllers.get_file_content(file_id)
+    file_chunks = process_controllers.process_file_content(
+        file_content=content,
+        file_id=file_id,
+        chunk_size=chunk_size,
+        overlap_size=chunk_overlap
+    )
+
+    if not file_chunks and len(content)==0:
+         return JSONResponse(
+           status=status.HTTP_400_BAD_REQUEST,
+           content={
+                "signal": ResponseValues.PROCESSING_FAILED.value,
+            }    
+            )
+    
+    return file_chunks
+    
+
+   
+
+    
+
     
 
 
