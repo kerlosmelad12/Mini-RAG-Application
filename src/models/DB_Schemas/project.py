@@ -1,9 +1,9 @@
 from pydantic import BaseModel,Field,validator
 from typing import Optional
-from bson.Objectid import Objectid
+from bson.objectid import ObjectId
 
 class Project(BaseModel):
-    _id: Optional[Objectid]
+    id: Optional[ObjectId]=Field(None, alias="_id") # toto  solve the problem about private _id
     project_id: str = Field(...,min_length=1)
 
 
@@ -17,3 +17,4 @@ class Project(BaseModel):
     # to ignore any not commen datatypes for pydantic
     class Config :
         arbitrary_types_allowed=True
+        allow_population_by_field_name = True

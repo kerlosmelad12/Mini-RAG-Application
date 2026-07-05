@@ -1,4 +1,4 @@
-from fastapi import APIRouter,UploadFile,Depends,status
+from fastapi import APIRouter,UploadFile,Depends,status,Request
 from helper.config import get_settings, Settings  
 from controllers import DataControllers,ProjectControllers,ProcessControllers
 from fastapi.responses import JSONResponse
@@ -7,15 +7,30 @@ import os
 from models import ResponseValues
 import logging
 from .Schema.data import Processrequest
+from models.ProjectModel import ProjectModel
+from models.ChunkModel import ChunkModel
+from models.DB_Schemas import data
+from bson import ObjectId
+from models.DB_Schemas.data import DataChunk
+
+
 data_router = APIRouter(
     prefix="/MiniRAG-V1/data",
     tags=['api_v1','data']
 )
 
 @data_router.post("/upload/{project_id}")
-async def upload_file(project_id:str,file:UploadFile,app_Settings:Settings=Depends(get_settings)):
+async def upload_file(request:Request,project_id:str,file:UploadFile,app_Settings:Settings=Depends(get_settings)):
+
+    project=ProjectModel(request.app.db_client)
+
+    project=await project.get_or_create_one(project_id)
+
     data_controllers=DataControllers()
+
     is_valid,result=data_controllers.validate_file(file)
+
+
     # Validate File 
     if not is_valid:
         return JSONResponse(
@@ -24,6 +39,7 @@ async def upload_file(project_id:str,file:UploadFile,app_Settings:Settings=Depen
                 "result":result
             }
         )
+    
     #Save File Disk
     
     file_path,file_id=data_controllers.generate_filename(   
@@ -45,24 +61,29 @@ async def upload_file(project_id:str,file:UploadFile,app_Settings:Settings=Depen
                 "signal": ResponseValues.FILE_UPLOAD_FAILD.value,
             }    
             )
-    
 
     return JSONResponse(
           content={
                 "signal": ResponseValues.FILE_UPLOAD_SUCCSESS.value,
-                'file_id':file_id
+                'file_id':file_id,
+                "project_id":str(project.id)
             }    
             )
     
 @data_router.post("/process/{project_id}")
-async def process_data(project_id:str, process_request: Processrequest):
+async def process_data(request:Request,project_id:str, process_request: Processrequest):
+    
     # Declar the procces reguest
     file_id=process_request.file_id
     chunk_size=process_request.chunk_size
     chunk_overlap=process_request.chunk_overlap
 
-    process_controllers=ProcessControllers(project_id)
+    project=ProjectModel(request.app.db_client)
 
+    project=await project.get_or_create_one(project_id)
+
+
+    process_controllers=ProcessControllers(project_id)
 
     content=process_controllers.get_file_content(file_id)
     file_chunks = process_controllers.process_file_content(
@@ -72,6 +93,9 @@ async def process_data(project_id:str, process_request: Processrequest):
         overlap_size=chunk_overlap
     )
 
+
+
+
     if not file_chunks and len(content)==0:
          return JSONResponse(
            status=status.HTTP_400_BAD_REQUEST,
@@ -80,7 +104,24 @@ async def process_data(project_id:str, process_request: Processrequest):
             }    
             )
     
-    return file_chunks
+    file_chunk_records=[ 
+        DataChunk(
+        chunk_text=chunk.page_content,
+        chunk_metadata=chunk.metadata,
+        chunk_order=i+1,
+        chunk_project_id=project.id)
+    
+        for i,chunk in enumerate(file_chunks)
+        ]
+    
+    Chunk=ChunkModel(request.app.db_client)
+     
+    count=await  Chunk.insert_many_chunks(file_chunk_records)
+
+    return count
+
+
+    
     
 
    
