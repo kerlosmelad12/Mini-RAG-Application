@@ -9,3 +9,5 @@ class ResponseValues(Enum):
 
     PROCESSING_SUCCESS = "processing_success"
     PROCESSING_FAILED = "processing_failed"
+
+    FILE_PATH_FAILD="file path dose not exist"

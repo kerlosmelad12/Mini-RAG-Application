@@ -17,6 +17,15 @@ class ProcessControllers(BaseControllers):
     def get_file_extention(self,file_id:str):
        return os.path.splitext(file_id)[-1]
     
+    #check if the path file exist or not 
+
+    def check_file_path(self,file_id:str):
+        file_path=os.path.join(self.project_path,
+                     file_id)
+        if not os.path.exists(file_path):
+            return False
+        return True
+    
 
     # Load The file based on the extention
     def get_file_loader(self,file_id:str):

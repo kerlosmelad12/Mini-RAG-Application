@@ -56,7 +56,7 @@ async def upload_file(request:Request,project_id:str,file:UploadFile,app_Setting
     except Exception as e:
        logging.error("The File is Faild To Save In Disk{e}")
        return JSONResponse(
-           status=status.HTTP_400_BAD_REQUEST,
+           status_code=status.HTTP_400_BAD_REQUEST,
            content={
                 "signal": ResponseValues.FILE_UPLOAD_FAILD.value,
             }    
@@ -77,13 +77,25 @@ async def process_data(request:Request,project_id:str, process_request: Processr
     file_id=process_request.file_id
     chunk_size=process_request.chunk_size
     chunk_overlap=process_request.chunk_overlap
-
+    do_reset=process_request.do_reset
+    Chunk=ChunkModel(request.app.db_client)
     project=ProjectModel(request.app.db_client)
 
+    
+    process_controllers=ProcessControllers(project_id)
+
+    if not process_controllers.check_file_path(file_id=file_id):
+        return JSONResponse(
+         status_code=status.HTTP_400_BAD_REQUEST,
+
+        content={
+            "signal":ResponseValues.FILE_PATH_FAILD.value
+                 }
+                 )
+    
     project=await project.get_or_create_one(project_id)
 
-
-    process_controllers=ProcessControllers(project_id)
+  
 
     content=process_controllers.get_file_content(file_id)
     file_chunks = process_controllers.process_file_content(
@@ -98,12 +110,14 @@ async def process_data(request:Request,project_id:str, process_request: Processr
 
     if not file_chunks and len(content)==0:
          return JSONResponse(
-           status=status.HTTP_400_BAD_REQUEST,
+           status_code=status.HTTP_400_BAD_REQUEST,
            content={
                 "signal": ResponseValues.PROCESSING_FAILED.value,
             }    
             )
-    
+  
+
+
     file_chunk_records=[ 
         DataChunk(
         chunk_text=chunk.page_content,
@@ -114,11 +128,18 @@ async def process_data(request:Request,project_id:str, process_request: Processr
         for i,chunk in enumerate(file_chunks)
         ]
     
-    Chunk=ChunkModel(request.app.db_client)
      
-    count=await  Chunk.insert_many_chunks(file_chunk_records)
+    if do_reset==1:
+        _=await Chunk.delete_chunks_by_project_id(project_id=project.id)
+     
+    count=await Chunk.insert_many_chunks(file_chunk_records)
 
-    return count
+    return JSONResponse(
+        content={
+            "signal":ResponseValues.PROCESSING_SUCCESS.value,
+                 "Record Count":count
+                 }
+                 )
 
 
     
