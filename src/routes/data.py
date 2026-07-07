@@ -9,7 +9,9 @@ import logging
 from .Schema.data import Processrequest
 from models.ProjectModel import ProjectModel
 from models.ChunkModel import ChunkModel
-from models.DB_Schemas import data
+from models.AssetModel import AssetModel
+from models.DB_Schemas.asset import Asset
+from models.enums.DataTypeValues import DataTypeValues
 from bson import ObjectId
 from models.DB_Schemas.data import DataChunk
 
@@ -22,9 +24,9 @@ data_router = APIRouter(
 @data_router.post("/upload/{project_id}")
 async def upload_file(request:Request,project_id:str,file:UploadFile,app_Settings:Settings=Depends(get_settings)):
 
-    project=ProjectModel(request.app.db_client)
+    project_model=await ProjectModel.create_instance(request.app.db_client)
 
-    project=await project.get_or_create_one(project_id)
+    project=await project_model.get_or_create_one(project_id)
 
     data_controllers=DataControllers()
 
@@ -61,12 +63,23 @@ async def upload_file(request:Request,project_id:str,file:UploadFile,app_Setting
                 "signal": ResponseValues.FILE_UPLOAD_FAILD.value,
             }    
             )
+    
+
+    asset_model=await AssetModel.create_instance(db_client=request.app.db_client)
+
+    asset=Asset(
+        asset_name=file_id,
+        asset_size=os.path.getsize(file_path),
+        asset_type=DataTypeValues.FILE.value,
+        asset_project_id=project.id)
+    asset_record=await asset_model.insert_asset(asset)
+
+
 
     return JSONResponse(
           content={
                 "signal": ResponseValues.FILE_UPLOAD_SUCCSESS.value,
-                'file_id':file_id,
-                "project_id":str(project.id)
+                'file_id':str(asset_record.id),
             }    
             )
     
@@ -78,8 +91,8 @@ async def process_data(request:Request,project_id:str, process_request: Processr
     chunk_size=process_request.chunk_size
     chunk_overlap=process_request.chunk_overlap
     do_reset=process_request.do_reset
-    Chunk=ChunkModel(request.app.db_client)
-    project=ProjectModel(request.app.db_client)
+    Chunk_model=await ChunkModel.create_instance(request.app.db_client)
+    project_model=await ProjectModel.create_instance(request.app.db_client)
 
     
     process_controllers=ProcessControllers(project_id)
@@ -93,7 +106,7 @@ async def process_data(request:Request,project_id:str, process_request: Processr
                  }
                  )
     
-    project=await project.get_or_create_one(project_id)
+    project=await project_model.get_or_create_one(project_id)
 
   
 
@@ -130,26 +143,21 @@ async def process_data(request:Request,project_id:str, process_request: Processr
     
      
     if do_reset==1:
-        _=await Chunk.delete_chunks_by_project_id(project_id=project.id)
-     
-    count=await Chunk.insert_many_chunks(file_chunk_records)
-
-    return JSONResponse(
-        content={
-            "signal":ResponseValues.PROCESSING_SUCCESS.value,
+        count=await Chunk_model.delete_chunks_by_project_id(project_id=project.id)
+        return JSONResponse(
+           content={
+            "signal":ResponseValues.DELETED_CUNKS_SUCCESS.value,
                  "Record Count":count
                  }
                  )
 
 
-    
-    
+    else:
+        count=await Chunk_model.insert_many_chunks(file_chunk_records)
 
-   
-
-    
-
-    
-
-
-    
+        return JSONResponse(
+           content={
+            "signal":ResponseValues.PROCESSING_SUCCESS.value,
+                 "Record Count":count
+                 }
+                 )
