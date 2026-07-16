@@ -17,15 +17,6 @@ class ProcessControllers(BaseControllers):
     def get_file_extention(self,file_id:str):
        return os.path.splitext(file_id)[-1]
     
-    #check if the path file exist or not 
-
-    def check_file_path(self,file_id:str):
-        file_path=os.path.join(self.project_path,
-                     file_id)
-        if not os.path.exists(file_path):
-            return False
-        return True
-    
 
     # Load The file based on the extention
     def get_file_loader(self,file_id:str):
@@ -33,16 +24,20 @@ class ProcessControllers(BaseControllers):
                      file_id)
         file_extention=self.get_file_extention(file_id)
 
-        if file_extention==ProcessingEnum.TXT.value:
-            return TextLoader(file_path,encoding='utf-8')
+        if file_path != None:
+
+            if file_extention==ProcessingEnum.TXT.value:
+                return TextLoader(file_path,encoding='utf-8')
         
-        if file_extention == ProcessingEnum.PDF.value:
-            return PyMuPDFLoader(file_path)
+            if file_extention == ProcessingEnum.PDF.value:
+                return PyMuPDFLoader(file_path)
         
         return None
     # Load the file content
     def get_file_content(self,file_id:str):
         loader = self.get_file_loader(file_id=file_id)
+        if loader ==None :
+            return None
         return loader.load()
     
     # Process file conntect

@@ -29,14 +29,13 @@ class AssetModel(DataBaseModel):
                 )
 
     
-    async def create_or_get_asset(self,asset_project_id:str,assest_name:str):
+    async def get_asset(self,asset_project_id:str,assest_name:str):
       result=await self.asset_collection.find({"asset_name":assest_name,
                                     "asset_project_id":ObjectId(asset_project_id)})
       
       if result is None:
-          asset=Asset(asset_project_id=asset_project_id,assest_name=assest_name)
-          record =await self.asset_collection.insert_one(asset.dict(by_alias=True, exclude_unset=True))
-          return record
+          None
+     
       
       return Asset(**result)
     
@@ -48,10 +47,14 @@ class AssetModel(DataBaseModel):
 
         return asset    
     
-    async def get_all_project_assets(self,asset_project_id:str):
-          return await self.asset_collection.find({
-              "asset_project_id":ObjectId(asset_project_id) if isinstance(asset_project_id,str) else asset_project_id
-                                                   }).to_list(lenght=None)
+    async def get_all_project_assets(self,asset_project_id:str,asset_type:str):
+        record= await self.asset_collection.find({
+              "asset_project_id":ObjectId(asset_project_id) if isinstance(asset_project_id,str) else asset_project_id,
+              "asset_type":asset_type
+                                                   }).to_list(length=None)
+        return [Asset(**record) for record in record]
+
+    
           
 
     

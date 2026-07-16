@@ -11,4 +11,5 @@ class ResponseValues(Enum):
     DELETED_CUNKS_SUCCESS="deleted_success"
     PROCESSING_FAILED = "processing_failed"
 
-    FILE_PATH_FAILD="file path dose not exist"
+    NO_FILES_ERROR = "not_found_files"
+    FILE_ID_ERROR = "no_file_found_with_this_id"
