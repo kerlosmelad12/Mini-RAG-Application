@@ -11,4 +11,4 @@ PyMuPDF==1.24.3
 motor==3.4.0
 pymongo==4.7.3
 pydantic-mongo==2.3.0
-wheel<0.44
+qdrant-client==1.10.1

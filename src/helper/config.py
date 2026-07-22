@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     GENERATION_DAFAULT_MAX_TOKENS:int=None
     GENERATION_DAFAULT_TEMPERATURE:float=None
 
+    Distance_Metric:str=None
+    DATABASE_FOLDER:str=None
+    VECTOR_STORE_BACKEND:str
+
     model_config = SettingsConfigDict(env_file=".env")
 
 def get_settings():
