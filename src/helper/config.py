@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL:str=None
 
     COHERE_API_KEY:str=None
-    GEMINI_API_KEY:str=None
+    GROK_API_KEY:str=None
 
 
     EMBEDDING_MODEL_SIZE:int=None
