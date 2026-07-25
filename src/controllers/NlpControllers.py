@@ -32,15 +32,9 @@ class NlpControllers(BaseControllers):
         texts = [c.chunk_text for c in data_chuncks]
         metadata = [c.chunk_metadata for c in data_chuncks]
 
-        # NOT wrapped in [...] — embedd_text already returns one vector per text
-        vectors = self.embedding_client.embedd_text(
-            texts=texts,
-            document_type=CoHereEnums.DOCUMENT.value
-        )
+        vectors = self.embedding_client.embedd_text(text=texts, document_type=CoHereEnums.DOCUMENT.value)
 
-        if not vectors or len(vectors) != len(texts):
-            self.logger.error("Embedding failed or returned mismatched vector count")
-            return False
+        
 
         is_created = self.vectordb_client.create_collection(
             collection_name=collection_name,

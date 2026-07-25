@@ -101,6 +101,14 @@ async def process_endpoint(request: Request, project_id: str, process_request: P
         project_id=project_id
     )
 
+
+    if project is None:
+        logging.error(f"Failed to get or create project for project_id: {project_id}")
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"signal": ResponseValues.PROJECT_NOT_FOUND.value}  # or similar
+        )
+
     asset_model = await AssetModel.create_instance(
             db_client=request.app.db_client
         )

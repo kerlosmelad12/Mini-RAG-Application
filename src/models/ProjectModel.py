@@ -42,7 +42,8 @@ class ProjectModel(DataBaseModel):
              project=Project(project_id=project_id)
              record=await self.insert_project(project)
 
-             return record
+             return Project(**record)
+         return Project(**result)
          
          
     async def get_project(self, project_id: str):

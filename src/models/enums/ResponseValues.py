@@ -13,6 +13,7 @@ class ResponseValues(Enum):
 
     NO_FILES_ERROR = "not_found_files"
     FILE_ID_ERROR = "no_file_found_with_this_id"
+    PROJECT_NOT_FOUND="no project found"
 
     NO_PROJECT_TO_EMBEDDING_DATA="no project found "
     NO_CHUNKS_FOR_EMBEDDING="no chunks to embedd"

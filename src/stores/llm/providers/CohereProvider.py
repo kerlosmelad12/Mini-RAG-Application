@@ -30,38 +30,40 @@ class CohereProvider(LLMInterface):
         self.embedding_size=embedding_size
 
 
-    def embedd_text(self,text:str,document_type:str=None):
+    def embedd_text(self, text, document_type: str = None):
 
         if not self.embedding_model_id:
             self.logger.error("cohere embedding model id not added")
             return None
 
-
         if not self.client:
             self.logger.error("cohere client not supported")
             return None
-        
-        input_type=CoHereEnums.DOCUMENT.value
 
-        if document_type!=input_type:
-            input_type=CoHereEnums.QUERY.value
+        # normalize input to a list either way
+        texts = text if isinstance(text, list) else [text]
+        texts = [self.process_text(t) for t in texts]
 
-        response=self.client.embed(
-            texts=[self.process_text(text)],
+        # decide input_type: DOCUMENT for indexing batches, QUERY otherwise
+        input_type = CoHereEnums.DOCUMENT.value
+        if document_type != input_type:
+            input_type = CoHereEnums.QUERY.value
+
+        response = self.client.embed(
+            texts=texts,
             model=self.embedding_model_id,
             input_type=input_type,
-            output_dimension=self.embedding_size,
             embedding_types=['float']
-
         )
 
         if not response or not response.embeddings or not response.embeddings.float:
             self.logger.error("Error while embedding text with CoHere")
             return None
-        
-        return response.embeddings.float[0]
-    
 
+        embeddings = [emb[:self.embedding_size] for emb in response.embeddings.float]
+
+        # single string in -> single vector out; list in -> list of vectors out
+        return embeddings[0] if not isinstance(text, list) else embeddings
     
     def generate_text(self,prompt:str,chat_history: list=[], max_output_tokens: int=None,
                             temperature: float = None):
