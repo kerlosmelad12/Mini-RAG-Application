@@ -49,7 +49,18 @@ class ChunkModel(DataBaseModel):
             return None
 
         return DataChunk(**result)
-    
+
+    async def get_chunks_by_projectid(self,project_id:str,page_no:int=1,page_size:int=50):
+       
+       result=await self.chunkdata_collection.find({
+          
+          "chunk_project_id":ObjectId(project_id) if isinstance(project_id,str) else project_id
+                }).skip(
+                    (page_no-1) * page_size
+                ).limit(page_size).to_list(length=None)
+
+
+       return [DataChunk(**record) for record in result]
 
     
 

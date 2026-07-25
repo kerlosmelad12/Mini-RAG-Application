@@ -1,4 +1,4 @@
-from pydantic import BaseModel,Field,validator
+from pydantic import BaseModel,Field,validator,ConfigDict
 from typing import Optional
 from bson.objectid import ObjectId
 
@@ -25,6 +25,10 @@ class DataChunk(BaseModel):
 
     
     # to ignore any not commen datatypes for pydantic
-    class Config :
-        arbitrary_types_allowed=True
-        allow_population_by_field_name = True
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        populate_by_name=True,
+        json_encoders={
+            ObjectId: str
+        }
+    )

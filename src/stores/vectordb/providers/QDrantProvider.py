@@ -14,7 +14,7 @@ class QDrantProvider(VectordbInterface):
 
 
     def connect(self):
-        self.client=QdrantClient(self.db_path)
+        self.client=QdrantClient(path=self.db_path)
 
 
     def set_distance_metric(self,distance_metric:str):
@@ -77,7 +77,7 @@ class QDrantProvider(VectordbInterface):
 
     def insert_one(self, collection_name: str, text: str, vector: list,
                              metadata: dict = None, 
-                             record_id: str = None):
+                            record_id: str= None):
         if not self.is_collection_existed(collection_name):
             self.logger.error(f"Can not insert new record to non-existed collection: {collection_name}")
             return False
@@ -87,6 +87,7 @@ class QDrantProvider(VectordbInterface):
                 collection_name=collection_name,
                 records=[
                     models.Record(
+                        id=[record_id],
                         vector=vector,
                         payload={
                             "text": text, "metadata": metadata
@@ -101,42 +102,42 @@ class QDrantProvider(VectordbInterface):
         return True
    
     def insert_many(self, collection_name: str, texts: list, 
-                             vectors: list, metadata: list = None, 
-                             record_ids: list = None, batch_size: int = 50):
+                         vectors: list, metadata: list = None, 
+                         record_ids: list = None, batch_size: int = 50):
 
         if metadata is None:
             metadata = [None] * len(texts)
 
         if record_ids is None:
-            record_ids = [None] * len(texts)
+            record_ids = list(range(0, len(texts)))
 
+        for i in range(0, len(texts), batch_size):
+            end_batch = i + batch_size
+            batch_vectors = vectors[i:end_batch]
+            batch_texts = texts[i:end_batch]
+            batch_metadatas = metadata[i:end_batch]
+            batch_recordids = record_ids[i:end_batch]
 
-        for i in range(0,len(texts),batch_size):
-
-            end_batch=i+batch_size
-            batch_vectors=vectors[i:end_batch]
-            batch_texts=texts[i:end_batch]
-            batch_metadatas=metadata[i:end_batch]
-
-            records=[
+            records = [
                 models.Record(
-                            vector=batch_vectors[x],
-                            payload={
-                            "text": batch_texts[x], "metadata": batch_metadatas[x]
-                                                    }  )
-                for x in range(batch_texts)
+                    id=batch_recordids[x],
+                    vector=batch_vectors[x],
+                    payload={
+                        "text": batch_texts[x], "metadata": batch_metadatas[x]
+                    }
+                )
+                for x in range(len(batch_texts))
             ]
 
             try:
-                 _ = self.client.upload_records(
-                            collection_name=collection_name,
-                            records=records)
+                _ = self.client.upload_records(
+                    collection_name=collection_name,
+                    records=records)
             except Exception as e:
-                        self.logger.error(f"Error while inserting batch: {e}")
-                        return False
+                self.logger.error(f"Error while inserting batch: {e}")
+                return False
 
         return True
-
     def search_by_vector(self, collection_name: str, vector: list, limit: int):
          return self.client.search(
             collection_name=collection_name,
