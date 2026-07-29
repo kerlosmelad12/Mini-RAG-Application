@@ -32,3 +32,7 @@ class DataChunk(BaseModel):
             ObjectId: str
         }
     )
+
+class RetrieveDocuments(BaseModel):
+    text:str
+    score:float
