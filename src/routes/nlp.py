@@ -6,8 +6,11 @@ from fastapi.responses import JSONResponse
 from models.enums.ResponseValues import ResponseValues
 from models.ChunkModel import ChunkModel
 from controllers import NlpControllers
+from .Schema.nlp import SearchRequest
 import logging
 logger= logging.getLogger("uvicorn.error")
+
+
 
 nlp_router = APIRouter(
     prefix="/MiniRAG-V1/nlp",
@@ -75,6 +78,80 @@ async def index_project (project_id:str,res:Request,push_request:PushRequest):
                              "result":ResponseValues.INSERTED_SCUSSCFULLY_VECTORDB.value
                          }
                      )
+@nlp_router.get("/index/info/{project_id}")
+
+async def get_project_info(project_id:str,res:Request):
+
+      
+      project_model=await ProjectModel.create_instance(res.app.db_client)
+      nlp_controller=NlpControllers(vectordb_client=res.app.qdrant,
+                         embedding_client=res.app.embedding_client,
+                         generation_client=res.app.generation_client)
+
+
+      project=await project_model.get_project(project_id)
+
+      if project is None:
+                 return JSONResponse(
+                           status_code=status.HTTP_400_BAD_REQUEST,
+                           content={
+                               "result":ResponseValues.NO_PROJECT_TO_EMBEDDING_DATA.value
+                           }
+                       )
+      collection_info=nlp_controller.get_collection_info(project)
+
+      if collection_info is None:
+                       return JSONResponse(
+                                 status_code=status.HTTP_400_BAD_REQUEST,
+                                 content={
+                                     "result":ResponseValues.COLLECTION_INFO_FAILD.value
+                                 }
+                             ) 
+      return JSONResponse(
+                            content={
+                                   "collection_info":collection_info,
+                                    "result":ResponseValues.COLLECTION_INFO_SUCCSESS.value
+                                        }
+                                   ) 
+
+@nlp_router.post("/index/search/{project_id}")
+async def search_index(res: Request, project_id: str, search_request: SearchRequest):
+    
+    project_model = await ProjectModel.create_instance(
+        db_client=res.app.db_client
+    )
+
+    project = await project_model.get_project(
+        project_id=project_id
+    )
+
+    nlp_controller=NlpControllers(vectordb_client=res.app.qdrant,
+                         embedding_client=res.app.embedding_client,
+                         generation_client=res.app.generation_client)
+
+    results = nlp_controller.search_vector_db_collection(
+        project=project, text=search_request.text, limit=search_request.limit
+    )
+
+    if not results:
+        return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content={
+                    "signal": ResponseValues.VECTORDB_SEARCH_ERROR.value
+                }
+            )
+    
+    return JSONResponse(
+        content={
+            "signal": ResponseValues.VECTORDB_SEARCH_SUCCESS.value,
+            "results": [ result.dict()  for result in results ]
+        }
+    )
+
+      
+      
+
+     
 
     
               

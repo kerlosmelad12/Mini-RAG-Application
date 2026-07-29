@@ -20,3 +20,7 @@ class ResponseValues(Enum):
 
     NO_DATA_ISTERSTEDIN_VECTOR="no data inserted in vector_db"
     INSERTED_SCUSSCFULLY_VECTORDB="data is inserted in vector db"
+    COLLECTION_INFO_FAILD="this collection dosent have info"
+    COLLECTION_INFO_SUCCSESS="collection info is succsess"
+    VECTORDB_SEARCH_ERROR = "vectordb_search_error"
+    VECTORDB_SEARCH_SUCCESS = "vectordb_search_success"

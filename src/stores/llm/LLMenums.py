@@ -18,3 +18,4 @@ class GrokEnums(Enum):
 class LLMEnums(Enum):
     GROK = "GROK"
     COHERE = "COHERE"
+    LOCALLLM="LOCALLLM"

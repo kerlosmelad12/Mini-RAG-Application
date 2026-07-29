@@ -4,3 +4,6 @@ from typing import Optional
 class PushRequest(BaseModel):
     do_rest:bool
    
+class SearchRequest(BaseModel):
+    text: str
+    limit: Optional[int] = 5

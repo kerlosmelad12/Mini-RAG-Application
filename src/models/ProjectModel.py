@@ -42,7 +42,8 @@ class ProjectModel(DataBaseModel):
              project=Project(project_id=project_id)
              record=await self.insert_project(project)
 
-             return Project(**record)
+             return record
+         
          return Project(**result)
          
          

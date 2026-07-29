@@ -2,7 +2,8 @@ from .BaseControllers import BaseControllers
 from models.DB_Schemas.project import Project
 from models.DB_Schemas.data import DataChunk
 from stores.llm.LLMenums import CoHereEnums
-
+import  logging
+import json
 
 class NlpControllers(BaseControllers):
 
@@ -11,19 +12,22 @@ class NlpControllers(BaseControllers):
         self.vectordb_client=vectordb_client
         self.embedding_client=embedding_client
         self.generation_client=generation_client
+        self.logger=logging.getLogger(__name__)
 
-    def create_collection_name (self,project_id):
-
-        return f"collection_ {project_id}".strip()
+    def create_collection_name(self, project_id: str) -> str:
+        return f"collection_{str(project_id).strip()}"
 
     def reset_vector_db(self,project:Project):
-        collection_name=self.create_collection_name(project.project_id)
+        collection_name=self.create_collection_name(project.id)
         return self.vectordb_client.delete_collection(collection_name=collection_name)
 
     def get_collection_info(self,project:Project):
-        collection_name=self.create_collection_name(project.project_id)
+        collection_name=self.create_collection_name(project.id)
         collection_info=self.vectordb_client.get_collection_info(collection_name=collection_name)
-        return collection_info
+
+        return json.loads(
+            json.dumps(collection_info, default=lambda x: x.__dict__)
+        )
 
     def index_into_vector_db(self, project: Project, data_chuncks: list[DataChunk],
                           chunk_ids: list[int], do_reset: bool = False):
@@ -34,7 +38,9 @@ class NlpControllers(BaseControllers):
 
         vectors = self.embedding_client.embedd_text(text=texts, document_type=CoHereEnums.DOCUMENT.value)
 
-        
+        if not vectors:
+            self.logger.error("Failed to generate embeddings, aborting insert")
+            return False 
 
         is_created = self.vectordb_client.create_collection(
             collection_name=collection_name,
@@ -53,3 +59,29 @@ class NlpControllers(BaseControllers):
         )
 
         return is_inserted
+
+    def search_vector_db_collection(self, project: Project, text: str, limit: int = 10):
+
+        # step1: get collection name
+        collection_name = self.create_collection_name(project_id=project.id)
+
+        # step2: get text embedding vector
+        vector = self.embedding_client.embedd_text(text=text, 
+                                                 )
+
+        if not vector or len(vector) == 0:
+            return False
+
+        # step3: do semantic search
+        results = self.vectordb_client.search_by_vector(
+            collection_name=collection_name,
+            vector=vector,
+            limit=limit
+        )
+
+        if not results:
+            return False
+
+        return results
+
+        

@@ -118,6 +118,8 @@ class QDrantProvider(VectordbInterface):
             batch_metadatas = metadata[i:end_batch]
             batch_recordids = record_ids[i:end_batch]
 
+
+
             records = [
                 models.Record(
                     id=batch_recordids[x],
