@@ -84,4 +84,15 @@ class NlpControllers(BaseControllers):
 
         return results
 
+    def answer_rag_question(self,project: Project, text: str, limit: int = 10):
+        # scearch query results
+        results= self.search_vector_db_collection(project=project,text=text)
+
+        if not results or len(results)==0:
+            return None
+
+        #construct the prompt 
+
+        
+
         
