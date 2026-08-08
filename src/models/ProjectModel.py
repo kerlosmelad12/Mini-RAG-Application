@@ -44,8 +44,20 @@ class ProjectModel(DataBaseModel):
 
              return record
          
-        
          return Project(**result)
+         
+         
+    async def get_project(self, project_id: str):
+        result = await self.project_collection.find_one(
+            {"project_id": project_id}
+        )
+
+        if result:
+            return Project(**result)
+
+        return None
+
+    
     async def get_all_projects(self,page:int=1,page_size:int=10):
         total_documents= await self.project_collection.count_documents({})
 

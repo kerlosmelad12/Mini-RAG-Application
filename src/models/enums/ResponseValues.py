@@ -13,3 +13,17 @@ class ResponseValues(Enum):
 
     NO_FILES_ERROR = "not_found_files"
     FILE_ID_ERROR = "no_file_found_with_this_id"
+    PROJECT_NOT_FOUND="no project found"
+
+    NO_PROJECT_TO_EMBEDDING_DATA="no project found "
+    NO_CHUNKS_FOR_EMBEDDING="no chunks to embedd"
+
+    NO_DATA_ISTERSTEDIN_VECTOR="no data inserted in vector_db"
+    INSERTED_SCUSSCFULLY_VECTORDB="data is inserted in vector db"
+    COLLECTION_INFO_FAILD="this collection dosent have info"
+    COLLECTION_INFO_SUCCSESS="collection info is succsess"
+    VECTORDB_SEARCH_ERROR = "vectordb_search_error"
+    VECTORDB_SEARCH_SUCCESS = "vectordb_search_success"
+
+    ANSWER_ERROR="the model cant answer the question"
+    ANSWER_SUCSESS="the model answer retured"

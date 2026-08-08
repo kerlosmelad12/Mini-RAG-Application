@@ -29,15 +29,16 @@ class AssetModel(DataBaseModel):
                 )
 
     
-    async def get_asset(self,asset_project_id:str,assest_name:str):
-      result=await self.asset_collection.find({"asset_name":assest_name,
-                                    "asset_project_id":ObjectId(asset_project_id)})
-      
-      if result is None:
-          None
-     
-      
-      return Asset(**result)
+    async def get_asset(self, asset_project_id: str, asset_name: str):
+        result = await self.asset_collection.find_one({
+            "asset_name": asset_name,
+            "asset_project_id": ObjectId(asset_project_id)
+        })
+        
+        if result is None:
+            return None
+        
+        return Asset(**result)
     
     async def insert_asset(self,asset:Asset):
         result= await self.asset_collection.insert_one(asset.dict(by_alias=True, exclude_unset=True))
