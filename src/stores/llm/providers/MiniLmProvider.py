@@ -23,7 +23,7 @@ class LocalEmbeddingProvider(LLMInterface):
     def construct_promot(self, message: str, role: str):
         raise NotImplementedError("this function not supported in LocalEmbedding Provider")
 
-    def generate_text(self, prompt: str, chat_history: list = [], max_output_tokens: int = None,
+    def generate_text(self, prompt: str, chat_history: list = None, max_output_tokens: int = None,
                        temperature: float = None):
         raise NotImplementedError("this function not supported in LocalEmbedding Provider")
 

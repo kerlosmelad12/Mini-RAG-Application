@@ -24,3 +24,6 @@ class ResponseValues(Enum):
     COLLECTION_INFO_SUCCSESS="collection info is succsess"
     VECTORDB_SEARCH_ERROR = "vectordb_search_error"
     VECTORDB_SEARCH_SUCCESS = "vectordb_search_success"
+
+    ANSWER_ERROR="the model cant answer the question"
+    ANSWER_SUCSESS="the model answer retured"

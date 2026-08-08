@@ -4,14 +4,17 @@ from models.DB_Schemas.data import DataChunk
 from stores.llm.LLMenums import CoHereEnums
 import  logging
 import json
+from stores.llm.LLMenums import GrokEnums
+
 
 class NlpControllers(BaseControllers):
 
-    def __init__(self,vectordb_client,embedding_client,generation_client):
+    def __init__(self,vectordb_client,embedding_client,generation_client,templete_client):
         super().__init__()
         self.vectordb_client=vectordb_client
         self.embedding_client=embedding_client
         self.generation_client=generation_client
+        self.templete_client=templete_client
         self.logger=logging.getLogger(__name__)
 
     def create_collection_name(self, project_id: str) -> str:
@@ -84,15 +87,38 @@ class NlpControllers(BaseControllers):
 
         return results
 
-    def answer_rag_question(self,project: Project, text: str, limit: int = 10):
-        # scearch query results
-        results= self.search_vector_db_collection(project=project,text=text)
+    def answer_rag_question(self, project: Project, text: str, limit: int = 10):
+        results = self.search_vector_db_collection(project=project, text=text, limit=limit)
 
-        if not results or len(results)==0:
+        if not results or len(results) == 0:
             return None
 
-        #construct the prompt 
+        system_promt = self.templete_client.get("rag", "system_prompt")
 
-        
+        document_promts = "\n".join([
+            self.templete_client.get(
+                "rag",
+                "user_prompt",
+                {
+                    "document_number": idx + 1,
+                    "context": doc.text,
+                }
+            )
+            for idx, doc in enumerate(results)
+        ])
 
-        
+        foter_promot = self.templete_client.get(
+            "rag",
+            "foter_prompt",
+            {"question": text}          
+        )
+
+        promot = "\n\n".join([document_promts, foter_promot])
+
+        chat_history = [self.generation_client.construct_promot(
+            message=system_promt,
+            role=self.generation_client.enums.SYSTEM.value)]
+
+        answer = self.generation_client.generate_text(prompt=promot, chat_history=chat_history)
+
+        return answer, promot, chat_history

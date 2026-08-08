@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL:str=None
 
     COHERE_API_KEY:str=None
-    GROK_API_KEY:str=None
+    GROQ_API_KEY:str=None
 
 
     EMBEDDING_MODEL_SIZE:int=None
@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     Distance_Metric:str=None
     DATABASE_FOLDER:str=None
     VECTOR_STORE_BACKEND:str
+
+    DEFAULT_LANGUAGE:str="en"
+    PRIMARY_LANGUAGE:str="en"
 
     model_config = SettingsConfigDict(env_file=".env")
 

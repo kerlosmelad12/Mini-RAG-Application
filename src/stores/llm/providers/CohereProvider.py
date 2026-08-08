@@ -19,11 +19,13 @@ class CohereProvider(LLMInterface):
 
         self.client=cohere.Client(api_key=self.api_key)
         self.logger=logging.getLogger(__name__)
+        self.enums=CoHereEnums
 
 
         self.generation_model_id=None
         self.embedding_model_id=None
         self.embedding_size=None
+
 
     def set_generation_model(self,model_id:str):
         self.generation_model_id=model_id
@@ -96,7 +98,7 @@ class CohereProvider(LLMInterface):
 
     
             
-    def generate_text(self,prompt:str,chat_history: list=[], max_output_tokens: int=None,
+    def generate_text(self,prompt:str,chat_history: list=None, max_output_tokens: int=None,
                             temperature: float = None):
         
         if not self.generation_model_id:

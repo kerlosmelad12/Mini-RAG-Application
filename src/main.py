@@ -5,7 +5,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from helper.config import get_settings
 from stores.llm.LLMFactory import LLMFactory
 from stores.vectordb.VectordbFactory import VectordbFactory
-
+from templetes.templete_parser import TempleteParser
 app = FastAPI()
 
 @app.on_event("startup")
@@ -29,6 +29,8 @@ async def startup_span():
     app.qdrant= Vector_db_factory.create(provider=settings.VECTOR_STORE_BACKEND)
     app.qdrant.set_distance_metric(settings.Distance_Metric)
     app.qdrant.connect()
+
+    app.templete_parser=TempleteParser(language=settings.PRIMARY_LANGUAGE,default_language=settings.DEFAULT_LANGUAGE)
 
 @app.on_event("shutdown")
 

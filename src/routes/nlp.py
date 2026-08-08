@@ -39,7 +39,8 @@ async def index_project (project_id:str,res:Request,push_request:PushRequest):
     
     nlp_controller=NlpControllers(vectordb_client=res.app.qdrant,
                    embedding_client=res.app.embedding_client,
-                   generation_client=res.app.generation_client)
+                   generation_client=res.app.generation_client,
+                   templete_client=res.app.templete_parser)
     
     has_records=True
     page_no=1
@@ -86,7 +87,9 @@ async def get_project_info(project_id:str,res:Request):
       project_model=await ProjectModel.create_instance(res.app.db_client)
       nlp_controller=NlpControllers(vectordb_client=res.app.qdrant,
                          embedding_client=res.app.embedding_client,
-                         generation_client=res.app.generation_client)
+                         generation_client=res.app.generation_client,
+                         templete_client=res.app.templete_parser
+                         )
 
 
       project=await project_model.get_project(project_id)
@@ -125,9 +128,18 @@ async def search_index(res: Request, project_id: str, search_request: SearchRequ
         project_id=project_id
     )
 
+    if project is None:
+            return JSONResponse(
+                           status_code=status.HTTP_400_BAD_REQUEST,
+                           content={
+                               "signal": ResponseValues.NO_PROJECT_TO_EMBEDDING_DATA.value
+                           }
+                       )
+
     nlp_controller=NlpControllers(vectordb_client=res.app.qdrant,
                          embedding_client=res.app.embedding_client,
-                         generation_client=res.app.generation_client)
+                         generation_client=res.app.generation_client,
+                         templete_client=res.app.templete_parser)
 
     results = nlp_controller.search_vector_db_collection(
         project=project, text=search_request.text, limit=search_request.limit
@@ -148,6 +160,57 @@ async def search_index(res: Request, project_id: str, search_request: SearchRequ
         }
     )
 
+@nlp_router.post("/index/answer/{project_id}")
+async def search_index(res: Request, project_id: str, search_request: SearchRequest):
+        project_model = await ProjectModel.create_instance(
+               db_client=res.app.db_client
+           )
+        
+        project = await project_model.get_project(
+               project_id=project_id
+           )
+
+        if project is None:
+                    return JSONResponse(
+                                   status_code=status.HTTP_400_BAD_REQUEST,
+                                   content={
+                                       "signal": ResponseValues.NO_PROJECT_TO_EMBEDDING_DATA.value
+                                   }
+                               )
+       
+        nlp_controller=NlpControllers(vectordb_client=res.app.qdrant,
+                                embedding_client=res.app.embedding_client,
+                                generation_client=res.app.generation_client,
+                                templete_client=res.app.templete_parser)
+       
+        answer,promot,chat_history = nlp_controller.answer_rag_question(
+               project=project, text=search_request.text, limit=search_request.limit
+           )
+
+
+        if answer is None:
+                return JSONResponse(
+                               status_code=status.HTTP_400_BAD_REQUEST,
+                               content={
+                                   
+                               }
+                           )
+
+        return JSONResponse(
+                            content={
+                                "signal": ResponseValues.ANSWER_SUCSESS.value,
+                                "answer":answer,
+                                "chat_history":chat_history,
+                                "promot":promot
+                                 }
+                                   )
+
+        
+               
+        
+
+        
+       
       
       
 

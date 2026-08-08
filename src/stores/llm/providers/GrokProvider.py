@@ -5,8 +5,8 @@ from groq import Groq
 
 class GrokProvider(LLMInterface):
     def __init__(self ,api_key: str,
-                       default_input_max_characters: int=1000,
-                       default_generation_max_output_tokens: int=1000,
+                       default_input_max_characters: int=10000,
+                       default_generation_max_output_tokens: int=10000,
                        default_generation_temperature: float=0.1):
         
 
@@ -17,6 +17,7 @@ class GrokProvider(LLMInterface):
 
         self.client=Groq(api_key=self.api_key)
         self.logger=logging.getLogger(__name__)
+        self.enums=GrokEnums
 
         self.generation_model_id=None
 
@@ -36,7 +37,7 @@ class GrokProvider(LLMInterface):
 
 
 
-    def generate_text(self,prompt: str,chat_history: list=[],
+    def generate_text(self,prompt: str,chat_history: list=None,
                       max_output_tokens: int = None,
                       temperature: float = None,):
         
@@ -47,6 +48,9 @@ class GrokProvider(LLMInterface):
         if not self.client:
             self.logger.error("Grok client not supported")
             return None
+
+        if chat_history is None:
+            chat_history = []
 
         temperature = temperature if temperature is not None else self.default_generation_temperature
         
