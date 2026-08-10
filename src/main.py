@@ -5,7 +5,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from helper.config import get_settings
 from stores.llm.LLMFactory import LLMFactory
 from stores.vectordb.VectordbFactory import VectordbFactory
-from templetes.templete_parser import TempleteParser
+from stores.templetes.templete_parser import TempleteParser
 app = FastAPI()
 
 @app.on_event("startup")
