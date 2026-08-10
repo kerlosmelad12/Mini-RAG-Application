@@ -137,7 +137,7 @@ class CohereProvider(LLMInterface):
         return{
 
             "role":role,
-            "content":self.process_text(message)
+            "content":message
         }
         
 

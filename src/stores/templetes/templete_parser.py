@@ -39,7 +39,7 @@ class TempleteParser:
               group_path=os.path.join(self.current_dir_path,"locales",target_language,f"{group}.py")
 
          
-        module_name=__import__(f"templetes.locales.{target_language}.{group}" , fromlist=[group])   
+        module_name=__import__(f"stores.templetes.locales.{target_language}.{group}" , fromlist=[group])   
 
         if not module_name:
             return None

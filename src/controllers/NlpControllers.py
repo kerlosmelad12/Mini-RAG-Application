@@ -101,7 +101,7 @@ class NlpControllers(BaseControllers):
                 "user_prompt",
                 {
                     "document_number": idx + 1,
-                    "context": doc.text,
+                    "context": self.generation_client.process_text(doc.text),
                 }
             )
             for idx, doc in enumerate(results)

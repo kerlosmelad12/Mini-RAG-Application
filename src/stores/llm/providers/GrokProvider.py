@@ -58,7 +58,7 @@ class GrokProvider(LLMInterface):
         max_output_tokens = max_output_tokens if max_output_tokens is not None else self.default_generation_max_output_tokens
 
         chat_history.append(
-            self.construct_promot(self.process_text(prompt),
+            self.construct_promot(prompt,
                                                   GrokEnums.USER.value)
                                                   )
         
@@ -80,7 +80,7 @@ class GrokProvider(LLMInterface):
     def construct_promot(self, message: str, role: str):
         return {
         "role": role,
-        "content": self.process_text(message),
+        "content": message,
         }
     
      
