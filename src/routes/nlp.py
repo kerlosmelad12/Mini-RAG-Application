@@ -19,7 +19,7 @@ nlp_router = APIRouter(
 
 @nlp_router.post("/index/push/{project_id}")
 
-async def index_project (project_id:str,res:Request,push_request:PushRequest):
+async def index_project (project_id:int,res:Request,push_request:PushRequest):
 
     
     project_model=await ProjectModel.create_instance(res.app.db_client)
@@ -49,7 +49,7 @@ async def index_project (project_id:str,res:Request,push_request:PushRequest):
     first_page=True
 
     while has_records:
-        page_chunks=await chunk_model.get_chunks_by_projectid(project_id=str(project.id), page_no=page_no)
+        page_chunks=await chunk_model.get_chunks_by_projectid(project_id=project.project_id, page_no=page_no)
 
         if not page_chunks or len(page_chunks)==0:
             has_records=False
@@ -81,7 +81,7 @@ async def index_project (project_id:str,res:Request,push_request:PushRequest):
                      )
 @nlp_router.get("/index/info/{project_id}")
 
-async def get_project_info(project_id:str,res:Request):
+async def get_project_info(project_id:int,res:Request):
 
       
       project_model=await ProjectModel.create_instance(res.app.db_client)
@@ -118,7 +118,7 @@ async def get_project_info(project_id:str,res:Request):
                                    ) 
 
 @nlp_router.post("/index/search/{project_id}")
-async def search_index(res: Request, project_id: str, search_request: SearchRequest):
+async def search_index(res: Request, project_id: int, search_request: SearchRequest):
     
     project_model = await ProjectModel.create_instance(
         db_client=res.app.db_client
@@ -161,7 +161,7 @@ async def search_index(res: Request, project_id: str, search_request: SearchRequ
     )
 
 @nlp_router.post("/index/answer/{project_id}")
-async def search_index(res: Request, project_id: str, search_request: SearchRequest):
+async def search_index(res: Request, project_id: int, search_request: SearchRequest):
         project_model = await ProjectModel.create_instance(
                db_client=res.app.db_client
            )

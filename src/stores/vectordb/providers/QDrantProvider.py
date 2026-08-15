@@ -3,7 +3,7 @@ from ..VectordbEnums import DistanceMetric
 from qdrant_client import models, QdrantClient
 import logging
 from typing import List
-from models.DB_Schemas.data import RetrieveDocuments
+from models.DB_Schemas.minirag.schemes.data import RetrieveDocuments
 
 class QDrantProvider(VectordbInterface):
 

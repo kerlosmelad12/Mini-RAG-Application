@@ -1,10 +1,9 @@
 from .BaseControllers import BaseControllers
-from models.DB_Schemas.project import Project
-from models.DB_Schemas.data import DataChunk
+from models.DB_Schemas.minirag.schemes.project import Project
+from models.DB_Schemas.minirag.schemes.data import DataChunk
 from stores.llm.LLMenums import CoHereEnums
 import  logging
 import json
-from stores.llm.LLMenums import GrokEnums
 
 
 class NlpControllers(BaseControllers):
@@ -21,11 +20,11 @@ class NlpControllers(BaseControllers):
         return f"collection_{str(project_id).strip()}"
 
     def reset_vector_db(self,project:Project):
-        collection_name=self.create_collection_name(project.id)
+        collection_name=self.create_collection_name(project.project_id)
         return self.vectordb_client.delete_collection(collection_name=collection_name)
 
     def get_collection_info(self,project:Project):
-        collection_name=self.create_collection_name(project.id)
+        collection_name=self.create_collection_name(project.project_id)
         collection_info=self.vectordb_client.get_collection_info(collection_name=collection_name)
 
         return json.loads(
@@ -34,7 +33,7 @@ class NlpControllers(BaseControllers):
 
     def index_into_vector_db(self, project: Project, data_chuncks: list[DataChunk],
                           chunk_ids: list[int], do_reset: bool = False):
-        collection_name = self.create_collection_name(project.id)
+        collection_name = self.create_collection_name(project.project_id)
 
         texts = [c.chunk_text for c in data_chuncks]
         metadata = [c.chunk_metadata for c in data_chuncks]
@@ -66,7 +65,7 @@ class NlpControllers(BaseControllers):
     def search_vector_db_collection(self, project: Project, text: str, limit: int = 10):
 
         # step1: get collection name
-        collection_name = self.create_collection_name(project_id=project.id)
+        collection_name = self.create_collection_name(project_id=project.project_id)
 
         # step2: get text embedding vector
         vector = self.embedding_client.embedd_text(text=text, 
