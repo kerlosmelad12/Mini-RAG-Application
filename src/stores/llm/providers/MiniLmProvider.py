@@ -1,7 +1,7 @@
 import logging
 from stores.llm.LLMInterface import LLMInterface
 from sentence_transformers import SentenceTransformer
-
+from typing import Union,List
 
 class LocalEmbeddingProvider(LLMInterface):
 
@@ -30,7 +30,7 @@ class LocalEmbeddingProvider(LLMInterface):
     def process_text(self, text: str):
         return text[0:self.input_defualt_max_characters].strip()
 
-    def embedd_text(self, text, document_type: str = None):
+    def embedd_text(self, text:Union[str,list[str]], document_type: str = None):
 
         if self.tokenizer is None:
             self.logger.error("local embedding model not loaded")

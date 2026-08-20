@@ -23,7 +23,7 @@ async def startup_span():
 )
 
     llm_provider_factory = LLMFactory(settings)
-    Vector_db_factory=VectordbFactory(settings)
+    Vector_db_factory=VectordbFactory(settings,app.db_client)
 
 
 
@@ -37,17 +37,17 @@ async def startup_span():
                                              embedding_size=settings.EMBEDDING_MODEL_SIZE)
 
     #Vector_Store
-    app.qdrant= Vector_db_factory.create(provider=settings.VECTOR_STORE_BACKEND)
-    app.qdrant.set_distance_metric(settings.Distance_Metric)
-    app.qdrant.connect()
+    app.vectordb_client= Vector_db_factory.create(provider=settings.VECTOR_STORE_BACKEND)
+    await app.vectordb_client.connect()
 
     app.templete_parser=TempleteParser(language=settings.PRIMARY_LANGUAGE,default_language=settings.DEFAULT_LANGUAGE)
+    
 
 @app.on_event("shutdown")
 
 async def shutdown_span():
     app.db_engine.dispose()
-    app.qdrant.disconnect()
+    
 
 
 

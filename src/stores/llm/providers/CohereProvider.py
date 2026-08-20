@@ -4,6 +4,7 @@ import logging
 from ..LLMenums import CoHereEnums
 import time
 from cohere.errors.too_many_requests_error import TooManyRequestsError
+from typing import Union,List
 
 class CohereProvider(LLMInterface):
     def __init__(self ,api_key: str,
@@ -35,7 +36,7 @@ class CohereProvider(LLMInterface):
         self.embedding_size=embedding_size
 
 
-    def embedd_text(self, text, document_type: str = None, max_retries: int = 3):
+    def embedd_text(self, text:Union[List[str],str] , document_type: str = None, max_retries: int = 3):
 
             if not self.embedding_model_id:
                 self.logger.error("cohere embedding model id not added")

@@ -2,6 +2,7 @@ from .DataBaseModel import DataBaseModel
 from .DB_Schemas.minirag.schemes.data import DataChunk
 from sqlalchemy.future import select
 from sqlalchemy import func,delete
+from bson.objectid import ObjectId
 
 class ChunkModel(DataBaseModel):
 
@@ -77,6 +78,16 @@ class ChunkModel(DataBaseModel):
             result = await session.execute(stmt)
             await session.commit()
         return result.rowcount
+
+
+    async def get_total_chunks_count(self, project_id: ObjectId):
+        total_count = 0
+        async with self.db_client() as session:
+            count_sql = select(func.count(DataChunk.chunk_id)).where(DataChunk.chunk_project_id == project_id)
+            records_count = await session.execute(count_sql)
+            total_count = records_count.scalar()
+        
+        return total_count
 
 
 

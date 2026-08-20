@@ -2,9 +2,9 @@ from fastapi import APIRouter,UploadFile,Depends,status,Request
 from helper.config import get_settings, Settings  
 from controllers import DataControllers,ProjectControllers,ProcessControllers
 from fastapi.responses import JSONResponse
+from models.enums.ResponseValues import ResponseValues 
 import aiofiles
 import os
-from models import ResponseValues
 import logging
 from .Schema.data import Processrequest
 from models.ProjectModel import ProjectModel
@@ -14,6 +14,7 @@ from models.DB_Schemas.minirag.schemes.asset import Asset
 from models.enums.DataTypeValues import DataTypeValues
 from models.DB_Schemas.minirag.schemes.data import DataChunk
 from models.enums.AssetTypeEnum import AssetTypeEnum
+from controllers.NlpControllers import NlpControllers
 
 
 
@@ -31,7 +32,7 @@ async def upload_file(request:Request,project_id:int,file:UploadFile,app_Setting
 
     data_controllers=DataControllers()
 
-    is_valid,result=data_controllers.validate_file(file)
+    is_valid,requestult=data_controllers.validate_file(file)
 
 
     # Validate File 
@@ -39,7 +40,7 @@ async def upload_file(request:Request,project_id:int,file:UploadFile,app_Setting
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             content={
-                "result":result
+                "requestult":requestult
             }
         )
     
@@ -95,6 +96,12 @@ async def process_endpoint(request: Request, project_id: int, process_request: P
     project_model = await ProjectModel.create_instance(
         db_client=request.app.db_client
     )
+
+    nlp_controller=NlpControllers(vectordb_client=request.app.vectordb_client,
+                             embedding_client=request.app.embedding_client,
+                             generation_client=request.app.generation_client,
+                             templete_client=request.app.templete_parser)
+
 
     project = await project_model.get_or_create_one(
         project_id=project_id
@@ -162,9 +169,19 @@ async def process_endpoint(request: Request, project_id: int, process_request: P
                     )
 
     if do_reset == 1:
+        # delete associated vectors collection
+
+        collection_name = nlp_controller.create_collection_name(project_id=project.project_id)
+
+        _ = await request.app.vectordb_client.delete_collection(collection_name=collection_name)
+
+         # delete associated chunks
+
         _ = await chunk_model.delete_chunks_by_project_id(
             project_id=project.project_id
         )
+
+
 
     for asset_id, file_id in project_files_ids.items():
 
