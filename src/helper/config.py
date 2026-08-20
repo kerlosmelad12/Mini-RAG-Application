@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
+from typing import List
 class Settings(BaseSettings):
     APP_NAME: str
     APP_VERSION: str
@@ -9,8 +9,12 @@ class Settings(BaseSettings):
     FILE_MAX_SIZE: int
     File_Chunk_Size: int
 
-    MONGODB_URI:str
-    MONGODB_DB_NAME:str
+    POSTGRES_MAIN_DATABASE:str
+    POSTGRES_PORT:int
+    POSTGRES_HOST:str
+    POSTGRES_PASSWORD:str
+    POSTGRES_USERNAME:str
+
 
     
     GENERATION_BACKEND :str
@@ -18,6 +22,8 @@ class Settings(BaseSettings):
 
     GENERATION_MODEL:str=None
     EMBEDDING_MODEL:str=None
+    EMBEDDING_MODEL_LITERAL:List
+    GENERATION_MODEL_LITERAL:List
 
     COHERE_API_KEY:str=None
     GROQ_API_KEY:str=None
@@ -29,8 +35,10 @@ class Settings(BaseSettings):
     GENERATION_DAFAULT_TEMPERATURE:float=None
 
     Distance_Metric:str=None
-    DATABASE_FOLDER:str=None
+    DATABASE_PATH:str=None
     VECTOR_STORE_BACKEND:str
+    VECTOR_STORE_BACKEND_LITERAL:list
+    VECTOR_DB_PGVEC_INDEX_THRESHOLD:int
 
     DEFAULT_LANGUAGE:str="en"
     PRIMARY_LANGUAGE:str="en"

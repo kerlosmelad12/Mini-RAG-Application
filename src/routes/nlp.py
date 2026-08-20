@@ -8,6 +8,8 @@ from models.ChunkModel import ChunkModel
 from controllers import NlpControllers
 from .Schema.nlp import SearchRequest
 import logging
+from tqdm import tqdm
+
 logger= logging.getLogger("uvicorn.error")
 
 
@@ -19,7 +21,7 @@ nlp_router = APIRouter(
 
 @nlp_router.post("/index/push/{project_id}")
 
-async def index_project (project_id:str,res:Request,push_request:PushRequest):
+async def index_project (project_id:int,res:Request,push_request:PushRequest):
 
     
     project_model=await ProjectModel.create_instance(res.app.db_client)
@@ -37,7 +39,7 @@ async def index_project (project_id:str,res:Request,push_request:PushRequest):
                  )
 
     
-    nlp_controller=NlpControllers(vectordb_client=res.app.qdrant,
+    nlp_controller=NlpControllers(vectordb_client=res.app.vectordb_client,
                    embedding_client=res.app.embedding_client,
                    generation_client=res.app.generation_client,
                    templete_client=res.app.templete_parser)
@@ -48,30 +50,43 @@ async def index_project (project_id:str,res:Request,push_request:PushRequest):
     index=0
     first_page=True
 
+     # create collection if not exists
+    collection_name = nlp_controller.create_collection_name(project_id=project.project_id)
+
+    _ = await res.app.vectordb_client.create_collection(
+        collection_name=collection_name,
+        vector_size=res.app.embedding_client.embedding_size,
+        do_reset=push_request.do_rest,
+    )
+
+    # setup batching
+    total_chunks_count = await chunk_model.get_total_chunks_count(project_id=project.project_id)
+    pbar = tqdm(total=total_chunks_count, desc="Vector Indexing", position=0)
+
     while has_records:
-        page_chunks=await chunk_model.get_chunks_by_projectid(project_id=str(project.id), page_no=page_no)
+        page_chunks=await chunk_model.get_chunks_by_projectid(project_id=project.project_id, page_no=page_no)
 
         if not page_chunks or len(page_chunks)==0:
             has_records=False
             break
 
         page_no+=1
-        chunk_ids=list(range(index, index+len(page_chunks)))
+        chunk_ids=[ c.chunk_id for c in page_chunks ]
         index+=len(page_chunks)
 
-        is_insterted=nlp_controller.index_into_vector_db(
+        is_insterted=await nlp_controller.index_into_vector_db(
             project=project,
             data_chuncks=page_chunks,
-            do_reset=push_request.do_rest if first_page else False,   # only reset on first page
             chunk_ids=chunk_ids
         )
-        first_page=False
 
         if not is_insterted:
             return JSONResponse(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 content={"result": ResponseValues.NO_DATA_ISTERSTEDIN_VECTOR.value}
             )
+
+        pbar.update(len(page_chunks))
         inserted_items_count += len(page_chunks)
 
     return JSONResponse(
@@ -81,11 +96,11 @@ async def index_project (project_id:str,res:Request,push_request:PushRequest):
                      )
 @nlp_router.get("/index/info/{project_id}")
 
-async def get_project_info(project_id:str,res:Request):
+async def get_project_info(project_id:int,res:Request):
 
       
       project_model=await ProjectModel.create_instance(res.app.db_client)
-      nlp_controller=NlpControllers(vectordb_client=res.app.qdrant,
+      nlp_controller=NlpControllers(vectordb_client=res.app.vectordb_client,
                          embedding_client=res.app.embedding_client,
                          generation_client=res.app.generation_client,
                          templete_client=res.app.templete_parser
@@ -101,7 +116,7 @@ async def get_project_info(project_id:str,res:Request):
                                "result":ResponseValues.NO_PROJECT_TO_EMBEDDING_DATA.value
                            }
                        )
-      collection_info=nlp_controller.get_collection_info(project)
+      collection_info=await nlp_controller.get_collection_info(project)
 
       if collection_info is None:
                        return JSONResponse(
@@ -118,7 +133,7 @@ async def get_project_info(project_id:str,res:Request):
                                    ) 
 
 @nlp_router.post("/index/search/{project_id}")
-async def search_index(res: Request, project_id: str, search_request: SearchRequest):
+async def search_index(res: Request, project_id: int, search_request: SearchRequest):
     
     project_model = await ProjectModel.create_instance(
         db_client=res.app.db_client
@@ -136,12 +151,12 @@ async def search_index(res: Request, project_id: str, search_request: SearchRequ
                            }
                        )
 
-    nlp_controller=NlpControllers(vectordb_client=res.app.qdrant,
+    nlp_controller=NlpControllers(vectordb_client=res.app.vectordb_client,
                          embedding_client=res.app.embedding_client,
                          generation_client=res.app.generation_client,
                          templete_client=res.app.templete_parser)
 
-    results = nlp_controller.search_vector_db_collection(
+    results = await nlp_controller.search_vector_db_collection(
         project=project, text=search_request.text, limit=search_request.limit
     )
 
@@ -161,7 +176,7 @@ async def search_index(res: Request, project_id: str, search_request: SearchRequ
     )
 
 @nlp_router.post("/index/answer/{project_id}")
-async def search_index(res: Request, project_id: str, search_request: SearchRequest):
+async def search_index(res: Request, project_id: int, search_request: SearchRequest):
         project_model = await ProjectModel.create_instance(
                db_client=res.app.db_client
            )
@@ -178,12 +193,12 @@ async def search_index(res: Request, project_id: str, search_request: SearchRequ
                                    }
                                )
        
-        nlp_controller=NlpControllers(vectordb_client=res.app.qdrant,
+        nlp_controller=NlpControllers(vectordb_client=res.app.vectordb_client,
                                 embedding_client=res.app.embedding_client,
                                 generation_client=res.app.generation_client,
                                 templete_client=res.app.templete_parser)
        
-        answer,promot,chat_history = nlp_controller.answer_rag_question(
+        answer,promot,chat_history = await nlp_controller.answer_rag_question(
                project=project, text=search_request.text, limit=search_request.limit
            )
 

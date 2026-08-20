@@ -1,10 +1,9 @@
 from .BaseControllers import BaseControllers
-from models.DB_Schemas.project import Project
-from models.DB_Schemas.data import DataChunk
+from models.DB_Schemas.minirag.schemes.project import Project
+from models.DB_Schemas.minirag.schemes.data import DataChunk
 from stores.llm.LLMenums import CoHereEnums
 import  logging
 import json
-from stores.llm.LLMenums import GrokEnums
 
 
 class NlpControllers(BaseControllers):
@@ -18,23 +17,23 @@ class NlpControllers(BaseControllers):
         self.logger=logging.getLogger(__name__)
 
     def create_collection_name(self, project_id: str) -> str:
-        return f"collection_{str(project_id).strip()}"
+        return f"collection_{self.vectordb_client.default_vector_size}_{str(project_id).strip()}"
 
-    def reset_vector_db(self,project:Project):
-        collection_name=self.create_collection_name(project.id)
-        return self.vectordb_client.delete_collection(collection_name=collection_name)
+    async def reset_vector_db(self,project:Project):
+        collection_name=self.create_collection_name(project.project_id)
+        return await self.vectordb_client.delete_collection(collection_name=collection_name)
 
-    def get_collection_info(self,project:Project):
-        collection_name=self.create_collection_name(project.id)
-        collection_info=self.vectordb_client.get_collection_info(collection_name=collection_name)
+    async def get_collection_info(self,project:Project):
+        collection_name=self.create_collection_name(project.project_id)
+        collection_info=await self.vectordb_client.get_collection_info(collection_name=collection_name)
 
         return json.loads(
             json.dumps(collection_info, default=lambda x: x.__dict__)
         )
 
-    def index_into_vector_db(self, project: Project, data_chuncks: list[DataChunk],
+    async def index_into_vector_db(self, project: Project, data_chuncks: list[DataChunk],
                           chunk_ids: list[int], do_reset: bool = False):
-        collection_name = self.create_collection_name(project.id)
+        collection_name = self.create_collection_name(project.project_id)
 
         texts = [c.chunk_text for c in data_chuncks]
         metadata = [c.chunk_metadata for c in data_chuncks]
@@ -45,15 +44,15 @@ class NlpControllers(BaseControllers):
             self.logger.error("Failed to generate embeddings, aborting insert")
             return False 
 
-        is_created = self.vectordb_client.create_collection(
+        is_created = await self.vectordb_client.create_collection(
             collection_name=collection_name,
             vector_size=self.embedding_client.embedding_size,
             do_reset=do_reset
         )
-        if not is_created and not self.vectordb_client.is_collection_exist(collection_name):
+        if not is_created and not await self.vectordb_client.is_collection_exist(collection_name):
             return False
 
-        is_inserted = self.vectordb_client.insert_many(
+        is_inserted = await self.vectordb_client.insert_many(
             collection_name=collection_name,
             metadata=metadata,
             texts=texts,
@@ -63,10 +62,10 @@ class NlpControllers(BaseControllers):
 
         return is_inserted
 
-    def search_vector_db_collection(self, project: Project, text: str, limit: int = 10):
+    async def search_vector_db_collection(self, project: Project, text: str, limit: int = 10):
 
         # step1: get collection name
-        collection_name = self.create_collection_name(project_id=project.id)
+        collection_name = self.create_collection_name(project_id=project.project_id)
 
         # step2: get text embedding vector
         vector = self.embedding_client.embedd_text(text=text, 
@@ -76,7 +75,7 @@ class NlpControllers(BaseControllers):
             return False
 
         # step3: do semantic search
-        results = self.vectordb_client.search_by_vector(
+        results = await self.vectordb_client.search_by_vector(
             collection_name=collection_name,
             vector=vector,
             limit=limit
@@ -87,8 +86,8 @@ class NlpControllers(BaseControllers):
 
         return results
 
-    def answer_rag_question(self, project: Project, text: str, limit: int = 10):
-        results = self.search_vector_db_collection(project=project, text=text, limit=limit)
+    async def answer_rag_question(self, project: Project, text: str, limit: int = 10):
+        results = await self.search_vector_db_collection(project=project, text=text, limit=limit)
 
         if not results or len(results) == 0:
             return None

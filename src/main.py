@@ -1,21 +1,32 @@
 from fastapi import FastAPI
 from routes import base, data, nlp
 import uvicorn
-from motor.motor_asyncio import AsyncIOMotorClient
 from helper.config import get_settings
 from stores.llm.LLMFactory import LLMFactory
 from stores.vectordb.VectordbFactory import VectordbFactory
 from stores.templetes.templete_parser import TempleteParser
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+
+
 app = FastAPI()
 
 @app.on_event("startup")
 
 async def startup_span():
     settings = get_settings()
-    app.mongo_conn = AsyncIOMotorClient(settings.MONGODB_URI)
-    app.db_client = app.mongo_conn[settings.MONGODB_DB_NAME]
+    postgres_conn = f"postgresql+asyncpg://{settings.POSTGRES_USERNAME}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_MAIN_DATABASE}"
+
+    app.db_engine=create_async_engine(postgres_conn)
+    app.db_client = sessionmaker( 
+        app.db_engine, class_=AsyncSession, expire_on_commit=False
+)
+
     llm_provider_factory = LLMFactory(settings)
-    Vector_db_factory=VectordbFactory(settings)
+    Vector_db_factory=VectordbFactory(settings,app.db_client)
+
+
+
     #generation
     app.generation_client = llm_provider_factory.create(provider=settings.GENERATION_BACKEND)
     app.generation_client.set_generation_model(model_id = settings.GENERATION_MODEL)
@@ -26,17 +37,17 @@ async def startup_span():
                                              embedding_size=settings.EMBEDDING_MODEL_SIZE)
 
     #Vector_Store
-    app.qdrant= Vector_db_factory.create(provider=settings.VECTOR_STORE_BACKEND)
-    app.qdrant.set_distance_metric(settings.Distance_Metric)
-    app.qdrant.connect()
+    app.vectordb_client= Vector_db_factory.create(provider=settings.VECTOR_STORE_BACKEND)
+    await app.vectordb_client.connect()
 
     app.templete_parser=TempleteParser(language=settings.PRIMARY_LANGUAGE,default_language=settings.DEFAULT_LANGUAGE)
+    
 
 @app.on_event("shutdown")
 
 async def shutdown_span():
-    app.mongo_conn.close()
-    app.qdrant.disconnect()
+    app.db_engine.dispose()
+    
 
 
 
