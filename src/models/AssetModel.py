@@ -1,6 +1,8 @@
 from .DataBaseModel import DataBaseModel
 from .DB_Schemas.minirag.schemes.asset import Asset
 from sqlalchemy.future import select
+from typing import Optional
+
 
 class AssetModel(DataBaseModel):
 
@@ -38,16 +40,17 @@ class AssetModel(DataBaseModel):
 
     
     
-    async def get_all_project_assets(self,asset_project_id:int,asset_type:str):
+    async def get_all_project_assets(self, asset_project_id: int, asset_type: Optional[str] = None):
         async with self.db_client() as session:
-            stmt = select(Asset).where(
-                Asset.asset_project_id == asset_project_id,
-                Asset.asset_type == asset_type
-            )
+            conditions = [Asset.asset_project_id == asset_project_id]
+            
+            if asset_type is not None:
+                conditions.append(Asset.asset_type == asset_type)
+            
+            stmt = select(Asset).where(*conditions)
             result = await session.execute(stmt)
             records = result.scalars().all()
         return records
-
     
           
 

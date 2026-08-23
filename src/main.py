@@ -7,6 +7,7 @@ from stores.vectordb.VectordbFactory import VectordbFactory
 from stores.templetes.templete_parser import TempleteParser
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
+from stores.sound.SoundFactory import SoundProviderFactory
 
 
 app = FastAPI()
@@ -24,12 +25,16 @@ async def startup_span():
 
     llm_provider_factory = LLMFactory(settings)
     Vector_db_factory=VectordbFactory(settings,app.db_client)
+    sound_factory = SoundProviderFactory(config=settings)
 
 
 
     #generation
     app.generation_client = llm_provider_factory.create(provider=settings.GENERATION_BACKEND)
     app.generation_client.set_generation_model(model_id = settings.GENERATION_MODEL)
+
+    #sound 
+    app.sound=sound_factory.create(provider=settings.SOUND_PROVIDER)
 
     # embedding client
     app.embedding_client = llm_provider_factory.create(provider=settings.EMBEDDING_BACKEND)
@@ -41,6 +46,8 @@ async def startup_span():
     await app.vectordb_client.connect()
 
     app.templete_parser=TempleteParser(language=settings.PRIMARY_LANGUAGE,default_language=settings.DEFAULT_LANGUAGE)
+
+   
     
 
 @app.on_event("shutdown")

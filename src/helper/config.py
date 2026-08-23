@@ -6,7 +6,9 @@ class Settings(BaseSettings):
 
 
     FILE_TYPE_EXTENTIONS: list
+    SOUND_TYPE_EXTENSIONS:List
     FILE_MAX_SIZE: int
+    SOUND_MAX_SIZE:int
     File_Chunk_Size: int
 
     POSTGRES_MAIN_DATABASE:str
@@ -42,6 +44,12 @@ class Settings(BaseSettings):
 
     DEFAULT_LANGUAGE:str="en"
     PRIMARY_LANGUAGE:str="en"
+
+    WHISPER_LANGUAGE:str
+    WHISPER_COMPUTE_TYPE:str
+    WHISPER_DEVICE:str
+    WHISPER_MODEL_SIZE:str
+    SOUND_PROVIDER:str
 
     model_config = SettingsConfigDict(env_file=".env")
 

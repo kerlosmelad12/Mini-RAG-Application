@@ -9,6 +9,12 @@ class BaseControllers:
         self.file_dir=os.path.join(
             self.base_dir,
               'assests/Files'  )
+        
+        self.sound_dir=os.path.join(
+                    self.base_dir,
+                      'assests/Sounds'  )
+
+
 
         self.database_dir=os.path.join(
             self.base_dir,
