@@ -5,6 +5,7 @@ class Processrequest(BaseModel):
     chunk_size: Optional[int]=51200
     chunk_overlap:Optional[int]=20
     do_reset: Optional[int]=0
+    file_type:Optional[str]=None
 
 
 
