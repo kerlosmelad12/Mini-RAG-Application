@@ -74,3 +74,5 @@ $ sudo docker compose up -d
 $ uvicorn main:app --reload --host 0.0.0.0 --port 5000
 ```
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/kerlosmelad12/Mini-RAG-Application)
+
