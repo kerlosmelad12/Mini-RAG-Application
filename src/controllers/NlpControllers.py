@@ -1,48 +1,58 @@
+import logging
+import json
+import asyncio
+from typing import Optional, Tuple, Any
 from .BaseControllers import BaseControllers
 from models.DB_Schemas.minirag.schemes.project import Project
 from models.DB_Schemas.minirag.schemes.data import DataChunk
 from stores.llm.LLMenums import CoHereEnums
-import  logging
-import json
+from models.enums.AssetTypeEnum import Assetlanguadge
 
 
 class NlpControllers(BaseControllers):
 
-    def __init__(self,vectordb_client,embedding_client,generation_client,templete_client):
+    def __init__(self, vectordb_client, embedding_client, generation_client, templete_client, translate_client):
         super().__init__()
-        self.vectordb_client=vectordb_client
-        self.embedding_client=embedding_client
-        self.generation_client=generation_client
-        self.templete_client=templete_client
-        self.logger=logging.getLogger(__name__)
+        self.vectordb_client = vectordb_client
+        self.embedding_client = embedding_client
+        self.generation_client = generation_client
+        self.template_client = templete_client
+        self.translate_client = translate_client
+        self.logger = logging.getLogger(__name__)
 
     def create_collection_name(self, project_id: str) -> str:
         return f"collection_{self.vectordb_client.default_vector_size}_{str(project_id).strip()}"
 
-    async def reset_vector_db(self,project:Project):
-        collection_name=self.create_collection_name(project.project_id)
+    async def reset_vector_db(self, project: Project):
+        collection_name = self.create_collection_name(project.project_id)
         return await self.vectordb_client.delete_collection(collection_name=collection_name)
 
-    async def get_collection_info(self,project:Project):
-        collection_name=self.create_collection_name(project.project_id)
-        collection_info=await self.vectordb_client.get_collection_info(collection_name=collection_name)
-
-        return json.loads(
-            json.dumps(collection_info, default=lambda x: x.__dict__)
-        )
+    async def get_collection_info(self, project: Project):
+        collection_name = self.create_collection_name(project.project_id)
+        collection_info = await self.vectordb_client.get_collection_info(collection_name=collection_name)
+        
+        # Safe dict conversion
+        if hasattr(collection_info, "dict"):
+            return collection_info.dict()
+        return json.loads(json.dumps(collection_info, default=lambda x: getattr(x, "__dict__", str(x))))
 
     async def index_into_vector_db(self, project: Project, data_chuncks: list[DataChunk],
-                          chunk_ids: list[int], do_reset: bool = False):
+                                    chunk_ids: list[int], do_reset: bool = False) -> bool:
         collection_name = self.create_collection_name(project.project_id)
 
         texts = [c.chunk_text for c in data_chuncks]
         metadata = [c.chunk_metadata for c in data_chuncks]
 
-        vectors = self.embedding_client.embedd_text(text=texts, document_type=CoHereEnums.DOCUMENT.value)
+        # Offload sync embedding calls to prevent loop blocking
+        vectors = await asyncio.to_thread(
+            self.embedding_client.embedd_text,
+            text=texts,
+            document_type=CoHereEnums.DOCUMENT.value
+        )
 
         if not vectors:
             self.logger.error("Failed to generate embeddings, aborting insert")
-            return False 
+            return False
 
         is_created = await self.vectordb_client.create_collection(
             collection_name=collection_name,
@@ -52,7 +62,7 @@ class NlpControllers(BaseControllers):
         if not is_created and not await self.vectordb_client.is_collection_exist(collection_name):
             return False
 
-        is_inserted = await self.vectordb_client.insert_many(
+        return await self.vectordb_client.insert_many(
             collection_name=collection_name,
             metadata=metadata,
             texts=texts,
@@ -60,44 +70,46 @@ class NlpControllers(BaseControllers):
             record_ids=chunk_ids
         )
 
-        return is_inserted
-
-    async def search_vector_db_collection(self, project: Project, text: str, limit: int = 10):
-
-        # step1: get collection name
+    async def search_vector_db_collection(self, project: Project, text: str,
+                                           book_language: str, limit: int = 10):
         collection_name = self.create_collection_name(project_id=project.project_id)
+        query_text = self.clean_text(text)
 
-        # step2: get text embedding vector
-        vector = self.embedding_client.embedd_text(text=text, 
-                                                 )
+        # Language translation if necessary
+        if self.detect_language(query_text) != book_language:
+            deepl_target = Assetlanguadge(book_language).to_deepl_code()
+            query_text = await asyncio.to_thread(
+                self.translate_client.translate,
+                text=query_text,
+                target_lang=deepl_target
+            )
+            query_text = self.clean_text(query_text)
 
-        if not vector or len(vector) == 0:
+        # Embedding query vector asynchronously
+        vector = await asyncio.to_thread(self.embedding_client.embedd_text, text=query_text)
+
+        if not vector:
             return False
 
-        # step3: do semantic search
-        results = await self.vectordb_client.search_by_vector(
+        return await self.vectordb_client.search_by_vector(
             collection_name=collection_name,
             vector=vector,
             limit=limit
         )
 
+    async def answer_rag_question(self, project: Project, text: str, book_language: str, limit: int = 10) -> Optional[Tuple[Any, str, list]]:
+        results = await self.search_vector_db_collection(
+            project=project, text=text, book_language=book_language, limit=limit
+        )
+
         if not results:
-            return False
-
-        return results
-
-    async def answer_rag_question(self, project: Project, text: str, limit: int = 10):
-        results = await self.search_vector_db_collection(project=project, text=text, limit=limit)
-
-        if not results or len(results) == 0:
             return None
 
-        system_promt = self.templete_client.get("rag", "system_prompt")
+        system_prompt = self.template_client.get("rag", "system_prompt")
 
-        document_promts = "\n".join([
-            self.templete_client.get(
-                "rag",
-                "user_prompt",
+        document_prompts = "\n".join([
+            self.template_client.get(
+                "rag", "user_prompt",
                 {
                     "document_number": idx + 1,
                     "context": self.generation_client.process_text(doc.text),
@@ -106,18 +118,20 @@ class NlpControllers(BaseControllers):
             for idx, doc in enumerate(results)
         ])
 
-        foter_promot = self.templete_client.get(
-            "rag",
-            "foter_prompt",
-            {"question": text}          
+        footer_prompt = self.template_client.get("rag", "foter_prompt", {"question": text})
+        full_prompt = "\n\n".join([document_prompts, footer_prompt])
+
+        chat_history = [
+            self.generation_client.construct_promot(
+                message=system_prompt,
+                role=self.generation_client.enums.SYSTEM.value
+            )
+        ]
+
+        answer = await asyncio.to_thread(
+            self.generation_client.generate_text,
+            prompt=full_prompt,
+            chat_history=chat_history
         )
 
-        promot = "\n\n".join([document_promts, foter_promot])
-
-        chat_history = [self.generation_client.construct_promot(
-            message=system_promt,
-            role=self.generation_client.enums.SYSTEM.value)]
-
-        answer = self.generation_client.generate_text(prompt=promot, chat_history=chat_history)
-
-        return answer, promot, chat_history
+        return answer, full_prompt, chat_history

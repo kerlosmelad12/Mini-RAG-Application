@@ -51,6 +51,12 @@ class Settings(BaseSettings):
     WHISPER_MODEL_SIZE:str
     SOUND_PROVIDER:str
 
+    DEEPL_API:str
+    TRANSLATOR_BCKEND:str
+    DEAFULT_TRANSLATED_LANGUAGE:str
+
+    KEYWORD_EXTRACTOR_MODEL:str
+
     model_config = SettingsConfigDict(env_file=".env")
 
 def get_settings():

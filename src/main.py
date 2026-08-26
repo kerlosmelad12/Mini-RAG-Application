@@ -8,6 +8,7 @@ from stores.templetes.templete_parser import TempleteParser
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from stores.sound.SoundFactory import SoundProviderFactory
+from stores.translator.TranslatorFactory import TranslatorFactory
 
 
 app = FastAPI()
@@ -26,6 +27,7 @@ async def startup_span():
     llm_provider_factory = LLMFactory(settings)
     Vector_db_factory=VectordbFactory(settings,app.db_client)
     sound_factory = SoundProviderFactory(config=settings)
+    translate_factory=TranslatorFactory(config=settings)
 
 
 
@@ -35,6 +37,9 @@ async def startup_span():
 
     #sound 
     app.sound=sound_factory.create(provider=settings.SOUND_PROVIDER)
+
+    #translator
+    app.translator=translate_factory.create(translator_type=settings.TRANSLATOR_BCKEND)
 
     # embedding client
     app.embedding_client = llm_provider_factory.create(provider=settings.EMBEDDING_BACKEND)

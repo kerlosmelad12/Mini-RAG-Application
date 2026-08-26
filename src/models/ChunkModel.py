@@ -3,6 +3,7 @@ from .DB_Schemas.minirag.schemes.data import DataChunk
 from sqlalchemy.future import select
 from sqlalchemy import func,delete
 from bson.objectid import ObjectId
+from sqlalchemy.sql import text as sql_text
 
 class ChunkModel(DataBaseModel):
 
@@ -88,6 +89,25 @@ class ChunkModel(DataBaseModel):
             total_count = records_count.scalar()
         
         return total_count
+
+
+    async def get_dominant_language(self, project_id: int) -> str:
+      
+        async with self.db_client() as session:
+            async with session.begin():
+                query = sql_text("""
+                    SELECT chunk_metadata->>'language' as lang, COUNT(*) as cnt
+                    FROM datachunks
+                    WHERE chunk_project_id = :project_id
+                      AND chunk_metadata->>'language' IS NOT NULL
+                    GROUP BY chunk_metadata->>'language'
+                    ORDER BY cnt DESC
+                    LIMIT 1
+                """)
+                result = await session.execute(query, {"project_id": project_id})
+                row = result.fetchone()
+
+        return row.lang if row else None
 
 
 

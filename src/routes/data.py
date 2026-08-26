@@ -154,26 +154,6 @@ async def upload_audio(request:Request,project_id:int,file:UploadFile,app_Settin
 
 
 
-    
-from fastapi import APIRouter,UploadFile,Depends,status,Request
-from helper.config import get_settings, Settings  
-from controllers import DataControllers,ProjectControllers,ProcessControllers
-from fastapi.responses import JSONResponse
-from models.enums.ResponseValues import ResponseValues 
-import aiofiles
-import os
-import logging
-from .Schema.data import Processrequest
-from models.ProjectModel import ProjectModel
-from models.ChunkModel import ChunkModel
-from models.AssetModel import AssetModel
-from models.DB_Schemas.minirag.schemes.asset import Asset
-from models.enums.DataTypeValues import DataTypeValues
-from models.DB_Schemas.minirag.schemes.data import DataChunk
-from models.enums.AssetTypeEnum import AssetTypeEnum
-from controllers.NlpControllers import NlpControllers
-
-
 
 data_router = APIRouter(
     prefix="/MiniRAG-V1/data",
@@ -309,9 +289,6 @@ async def upload_audio(request:Request,project_id:int,file:UploadFile,app_Settin
             }    
             ) 
 
-
-
-    
 @data_router.post("/process/{project_id}")
 async def process_endpoint(request: Request, project_id: int, process_request: Processrequest):
 
@@ -326,7 +303,8 @@ async def process_endpoint(request: Request, project_id: int, process_request: P
     nlp_controller = NlpControllers(vectordb_client=request.app.vectordb_client,
                              embedding_client=request.app.embedding_client,
                              generation_client=request.app.generation_client,
-                             templete_client=request.app.templete_parser)
+                             templete_client=request.app.templete_parser,
+                            translate_client=request.app.translator )
 
     project = await project_model.get_or_create_one(
         project_id=project_id
@@ -430,6 +408,8 @@ async def process_endpoint(request: Request, project_id: int, process_request: P
             chunk_size=chunk_size,
             overlap_size=overlap_size
         )
+
+
 
         if file_chunks is None or len(file_chunks) == 0:
             return JSONResponse(

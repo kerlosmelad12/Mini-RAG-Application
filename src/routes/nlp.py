@@ -42,7 +42,8 @@ async def index_project (project_id:int,res:Request,push_request:PushRequest):
     nlp_controller=NlpControllers(vectordb_client=res.app.vectordb_client,
                    embedding_client=res.app.embedding_client,
                    generation_client=res.app.generation_client,
-                   templete_client=res.app.templete_parser)
+                   templete_client=res.app.templete_parser,
+                    translate_client=res.app.translator)
     
     has_records=True
     page_no=1
@@ -103,7 +104,8 @@ async def get_project_info(project_id:int,res:Request):
       nlp_controller=NlpControllers(vectordb_client=res.app.vectordb_client,
                          embedding_client=res.app.embedding_client,
                          generation_client=res.app.generation_client,
-                         templete_client=res.app.templete_parser
+                         templete_client=res.app.templete_parser,
+                         translate_client=res.app.translator
                          )
 
 
@@ -138,6 +140,9 @@ async def search_index(res: Request, project_id: int, search_request: SearchRequ
     project_model = await ProjectModel.create_instance(
         db_client=res.app.db_client
     )
+    chunk_model=await ChunkModel.create_instance(
+        db_client=res.app.db_client
+    )
 
     project = await project_model.get_project(
         project_id=project_id
@@ -151,13 +156,22 @@ async def search_index(res: Request, project_id: int, search_request: SearchRequ
                            }
                        )
 
+    book_language=await chunk_model.get_dominant_language(project_id=project.project_id)
+
+    
+
     nlp_controller=NlpControllers(vectordb_client=res.app.vectordb_client,
                          embedding_client=res.app.embedding_client,
                          generation_client=res.app.generation_client,
-                         templete_client=res.app.templete_parser)
+                         templete_client=res.app.templete_parser,
+                        translate_client=res.app.translator
+                                                   )
+
 
     results = await nlp_controller.search_vector_db_collection(
-        project=project, text=search_request.text, limit=search_request.limit
+        project=project, text=search_request.text, 
+        limit=search_request.limit,
+        book_language=book_language
     )
 
     if not results:
@@ -176,63 +190,45 @@ async def search_index(res: Request, project_id: int, search_request: SearchRequ
     )
 
 @nlp_router.post("/index/answer/{project_id}")
-async def search_index(res: Request, project_id: int, search_request: SearchRequest):
-        project_model = await ProjectModel.create_instance(
-               db_client=res.app.db_client
-           )
-        
-        project = await project_model.get_project(
-               project_id=project_id
-           )
+async def answer_index(res: Request, project_id: int, search_request: SearchRequest):
 
-        if project is None:
-                    return JSONResponse(
-                                   status_code=status.HTTP_400_BAD_REQUEST,
-                                   content={
-                                       "signal": ResponseValues.NO_PROJECT_TO_EMBEDDING_DATA.value
-                                   }
-                               )
-       
-        nlp_controller=NlpControllers(vectordb_client=res.app.vectordb_client,
-                                embedding_client=res.app.embedding_client,
-                                generation_client=res.app.generation_client,
-                                templete_client=res.app.templete_parser)
-       
-        answer,promot,chat_history = await nlp_controller.answer_rag_question(
-               project=project, text=search_request.text, limit=search_request.limit
-           )
+    project_model = await ProjectModel.create_instance(db_client=res.app.db_client)
+    chunk_model = await ChunkModel.create_instance(res.app.db_client) 
+    project = await project_model.get_project(project_id=project_id)
 
-
-        if answer is None:
-                return JSONResponse(
-                               status_code=status.HTTP_400_BAD_REQUEST,
-                               content={
-                                   
-                               }
-                           )
-
+    if project is None:
         return JSONResponse(
-                            content={
-                                "signal": ResponseValues.ANSWER_SUCSESS.value,
-                                "answer":answer,
-                                "chat_history":chat_history,
-                                "promot":promot
-                                 }
-                                   )
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"signal": ResponseValues.NO_PROJECT_TO_EMBEDDING_DATA.value}
+        )
 
-        
-               
-        
+    book_language=await chunk_model.get_dominant_language(project_id=project.project_id)
 
-        
-       
-      
-      
+    nlp_controller = NlpControllers(
+        vectordb_client=res.app.vectordb_client,
+        embedding_client=res.app.embedding_client,
+        generation_client=res.app.generation_client,
+        templete_client=res.app.templete_parser,
+         translate_client=res.app.translator
 
-     
+    )
 
-    
-              
-              
-    
-              
+    answer, promot, chat_history = await nlp_controller.answer_rag_question(
+        project=project, text=search_request.text,  limit=search_request.limit,book_language=book_language
+    )
+
+
+    if answer is None:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"signal": ResponseValues.VECTORDB_SEARCH_ERROR.value}
+        )
+
+    return JSONResponse(
+        content={
+            "signal": ResponseValues.ANSWER_SUCSESS.value,
+            "answer": answer,
+            "chat_history": chat_history,
+            "promot": promot
+        }
+    )
