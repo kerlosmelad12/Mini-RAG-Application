@@ -27,3 +27,8 @@ psycopg2==2.9.10
 pgvector==0.4.0
 nltk==3.9.1
 faster_whisper==1.2.1
+yake==0.7.3
+langdetect==1.0.9
+Arabic-Stopwords==0.4.3 
+deepl==1.32.0 
+keybert==0.9.0
