@@ -9,9 +9,19 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from stores.sound.SoundFactory import SoundProviderFactory
 from stores.translator.TranslatorFactory import TranslatorFactory
+from utils.metric import setup_metrics
+from prometheus_fastapi_instrumentator import Instrumentator
+
+
 
 
 app = FastAPI()
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+
+
+# Setup Prometheus metrics
+setup_metrics(app)
+
 
 @app.on_event("startup")
 
