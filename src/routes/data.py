@@ -15,6 +15,7 @@ from models.enums.DataTypeValues import DataTypeValues
 from models.DB_Schemas.minirag.schemes.data import DataChunk
 from models.enums.AssetTypeEnum import AssetTypeEnum
 from controllers.NlpControllers import NlpControllers
+from tasks.file_processing import process_project_files
 
 
 
@@ -295,6 +296,20 @@ async def process_endpoint(request: Request, project_id: int, process_request: P
     chunk_size = process_request.chunk_size
     overlap_size = process_request.chunk_overlap
     do_reset = process_request.do_reset
+
+    task=process_project_files.delay(project_id=project_id,file_id=process_request.file_id
+                                ,do_reset=process_request.do_reset,overlap_size=process_request.chunk_overlap
+                                ,chunk_size=process_request.chunk_size,file_type=process_request.file_type)
+
+
+    return JSONResponse(
+        content={
+            "signal": ResponseValues.PROCESSING_SUCCESS.value,
+            "task_id": task.id
+        }
+    )
+
+
 
     project_model = await ProjectModel.create_instance(
         db_client=request.app.db_client
