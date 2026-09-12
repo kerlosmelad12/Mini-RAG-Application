@@ -27,3 +27,6 @@ class ResponseValues(Enum):
 
     ANSWER_ERROR="the model cant answer the question"
     ANSWER_SUCSESS="the model answer retured"
+
+    PROCESSING_AND_INDEXING_SUCCESS="processing and indexing are success"
+    TASK_QUEUED = "task_queued_successfully"
