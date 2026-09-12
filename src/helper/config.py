@@ -62,6 +62,7 @@ class Settings(BaseSettings):
     DEEPL_API:str
     TRANSLATOR_BCKEND:str
     DEAFULT_TRANSLATED_LANGUAGE:str
+    CELERY_FLOWER_PASSWORD:str
 
 
     model_config = SettingsConfigDict(env_file=".env")

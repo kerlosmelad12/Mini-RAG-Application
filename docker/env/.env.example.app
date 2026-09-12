@@ -55,9 +55,11 @@ DEEPL_API=
 DEAFULT_TRANSLATED_LANGUAGE=
 
 
-CELERY_BROKER_URL="amqp://minirag_user:minirag_rabbitmq_123@localhost:5672/minirag_vhost"
-CELERY_RESULT_BACKEND="redis://:minirag_redis_123@localhost:6379/0"
+
+CELERY_BROKER_URL="amqp://minirag_user:minirag_rabbitmq_123@rabbitmq:5672/minirag_vhost"
+CELERY_RESULT_BACKEND="redis://:minirag_redis_123@redis:6379/0"
 CELERY_TASK_SERIALIZER="json" #data from the task is serialized to JSON before sending it to the broker
 CELERY_TASK_TIME_LIMIT=600
 CELERY_TASK_ACKS_LATE=false
 CELERY_WORKER_CONCURRENCY=2
+CELERY_FLOWER_PASSWORD="minirag_flower_123"
