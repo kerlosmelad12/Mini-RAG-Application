@@ -17,6 +17,14 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD:str
     POSTGRES_USERNAME:str
 
+    
+    CELERY_BROKER_URL:str
+    CELERY_RESULT_BACKEND:str
+    CELERY_TASK_SERIALIZER:str
+    CELERY_TASK_TIME_LIMIT:int
+    CELERY_TASK_ACKS_LATE:bool
+    CELERY_WORKER_CONCURRENCY:int
+
 
     
     GENERATION_BACKEND :str
@@ -54,6 +62,7 @@ class Settings(BaseSettings):
     DEEPL_API:str
     TRANSLATOR_BCKEND:str
     DEAFULT_TRANSLATED_LANGUAGE:str
+    CELERY_FLOWER_PASSWORD:str
 
 
     model_config = SettingsConfigDict(env_file=".env")
