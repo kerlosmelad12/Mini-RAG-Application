@@ -12,3 +12,4 @@ async def welcome(app_settings=Depends(get_settings)):
     
     return {"app_name": app_name,
             "app_version":version}
+
